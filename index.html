@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>早春圖：大富翁遊賞</title>
+    <style>
+        body { background: #f4f1de; font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: column; align-items: center; }
+        #game-container { position: relative; margin-top: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+        canvas { background: #fff; border: 10px solid #5d4037; }
+        #ui-panel { margin-top: 15px; text-align: center; }
+        button { padding: 10px 20px; font-size: 18px; cursor: pointer; background: #8d6e63; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #5d4037; }
+        #info-log { height: 60px; color: #3e2723; font-weight: bold; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>《早春圖》名畫大富翁</h2>
+    <div id="info-log">點擊「擲骰子」開始遊歷北宋山水...</div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div id="ui-panel">
+        <p>當前位置: <span id="pos-display">起點</span> | 氣韻值: <span id="score-display">100</span></p>
+        <button onclick="rollDice()">擲骰子 (Roll)</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 遊戲數據：對應文獻中的元素
+    const tiles = [
+        { name: "起點", desc: "瑞雪消融，大地復甦" },
+        { name: "雲頭皴", desc: "郭熙自創，如捲曲雲塊的岩石紋理", color: "#d7ccc8" },
+        { name: "溪澗", desc: "煙嵐浮動，聽見山間水聲", color: "#bbdefb" },
+        { name: "蟹爪枝", desc: "林木枝幹虯曲，如伸指布掌", color: "#d7ccc8" },
+        { name: "行旅人物", desc: "細膩描繪的人物活動，營造可居游之景", color: "#c8e6c9" },
+        { name: "中央主山", desc: "充滿能量的山體動勢，居中矗立", color: "#a1887f" },
+        { name: "平坡委迤", desc: "左側平展的坡岸，極具深遠感", color: "#fff9c4" },
+        { name: "殿堂樓閣", desc: "深山中宏偉的建築，王安石變法時期的氣象", color: "#ffccbc" },
+        { name: "煙嵐", desc: "宇宙間無窮的生機與變幻氣氛", color: "#f5f5f5" },
+        { name: "壬子年款", desc: "畫作於1072年，北宋山水里程碑", color: "#cfd8dc" }
+    ];
+
+    let playerPos = 0;
+    let score = 100;
+    const tileSize = 100;
+
+    // 模擬載入中心原圖 (此處以文字與示意矩形替代，實際可替換為圖片)
+    function drawBoard() {
+        ctx.clearRect(0, 0, 600, 600);
+        
+        // 1. 繪製中心《早春圖》區域
+        ctx.fillStyle = "#e0e0e0";
+        ctx.fillRect(100, 100, 400, 400);
+        ctx.strokeStyle = "#5d4037";
+        ctx.strokeRect(110, 110, 380, 380);
+        
+        ctx.fillStyle = "#5d4037";
+        ctx.font = "24px serif";
+        ctx.fillText("《早春圖》原圖位", 210, 280);
+        ctx.font = "16px serif";
+        ctx.fillText("郭熙 (1072)", 260, 310);
+        ctx.fillText("[ 煙嵐浮動 ‧ 可遊可居 ]", 220, 340);
+
+        // 2. 繪製周邊格子 (沿著邊緣繞圈)
+        const positions = [
+            [0,0], [200,0], [400,0], [500,0], [500,200], [500,400], [500,500], [300,500], [100,500], [0,300]
+        ]; // 簡化後的路徑位置
+
+        tiles.forEach((tile, i) => {
+            let x, y;
+            // 棋盤邏輯佈局
+            if(i < 3) { x = i*200; y = 0; }
+            else if(i < 6) { x = 500; y = (i-3)*200; }
+            else if(i < 8) { x = 500 - (i-6)*250; y = 500; }
+            else { x = 0; y = 500 - (i-8)*250; }
+
+            ctx.fillStyle = tile.color || "#fff";
+            ctx.fillRect(x, y, 100, 100);
+            ctx.strokeRect(x, y, 100, 100);
+            
+            ctx.fillStyle = "#000";
+            ctx.font = "14px Arial";
+            ctx.fillText(tile.name, x + 5, y + 50);
+            
+            // 紀錄座標供玩家移動
+            tile.px = x + 50;
+            tile.py = y + 50;
+        });
+
+        // 3. 繪製玩家
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        const p = tiles[playerPos];
+        ctx.arc(p.px, p.py, 15, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function rollDice() {
+        const step = Math.floor(Math.random() * 3) + 1;
+        playerPos = (playerPos + step) % tiles.length;
+        
+        const currentTile = tiles[playerPos];
+        score += 10; // 每次移動增加氣韻值
+
+        document.getElementById('info-log').innerHTML = `你擲出了 ${step} 點，來到「${currentTile.name}」！<br>${currentTile.desc}`;
+        document.getElementById('pos-display').innerText = currentTile.name;
+        document.getElementById('score-display').innerText = score;
+        
+        drawBoard();
+
+        if (score >= 200) {
+            setTimeout(() => alert("恭喜！你已領悟《早春圖》之神韻，遊歷完成！"), 100);
+            score = 100; // 重置
+        }
+    }
+
+    drawBoard();
+</script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
